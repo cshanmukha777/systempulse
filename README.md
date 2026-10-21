@@ -1,19 +1,24 @@
 # SystemPulse — Smart Desktop System Monitor
 
-A desktop application built using Electron for the Application Development course.
+SystemPulse is a desktop application project developed using Electron for the Application Development course. The project focuses on building a desktop application with system-level integration.
 
-## Project Overview
+## Technology Stack
 
-SystemPulse aims to monitor system processes and display useful system information through a desktop interface.
+- **Electron** — Desktop application framework
+- **Node.js** — JavaScript runtime
+- **JavaScript** — Application development
 
-## Technologies
+## Getting Started
 
-- Electron
-- React
-- JavaScript
-- Node.js
-- Git and GitHub
+### Prerequisites
 
-## Status
+- Node.js and npm installed
+- Git installed
 
-🚧 Under development.
+### Installation
+
+Clone the repository and enter the project directory:
+
+```bash
+git clone https://github.com/cshanmukha777/systempulse.git
+cd systempulse
