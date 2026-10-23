@@ -27,7 +27,7 @@ const IPC_CHANNELS = Object.freeze({
 
 /**
  * @template T
- * @typedef {{ok: true, data: T} | {ok: false, error: {code: string, message: string}}} ServiceResponse<T>
+ * @typedef {{ok: true, data: T} | {ok: false, error: {code: string, message: string}}} ServiceResponse
  */
 
 /**
