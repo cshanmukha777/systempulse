@@ -19,13 +19,15 @@ export function useSystemPulse(refreshIntervalSeconds: number): SystemPulseData 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(false);
+  const generation = useRef(0);
   const inFlight = useRef(false);
   const refresh = useCallback(async () => {
     if (!mounted.current || inFlight.current) return;
     inFlight.current = true;
+    const requestGeneration = generation.current;
     try {
       const results = await Promise.allSettled([window.systemPulse.getMetrics(), window.systemPulse.getProcesses()]);
-      if (!mounted.current) return;
+      if (!mounted.current || requestGeneration !== generation.current) return;
       const failures: string[] = [];
       const metricResult = results[0];
       if (metricResult.status === "fulfilled" && metricResult.value.ok) {
@@ -54,17 +56,18 @@ export function useSystemPulse(refreshIntervalSeconds: number): SystemPulseData 
       else failures.push("Unable to load running processes.");
       setError(failures.length ? failures.join(" ") : null);
     } catch {
-      if (mounted.current) setError("System data is temporarily unavailable.");
+      if (mounted.current && requestGeneration === generation.current) setError("System data is temporarily unavailable.");
     } finally {
       inFlight.current = false;
-      if (mounted.current) setLoading(false);
+      if (mounted.current && requestGeneration === generation.current) setLoading(false);
     }
   }, []);
   useEffect(() => {
     mounted.current = true;
+    generation.current += 1;
     void refresh();
     const id = window.setInterval(() => void refresh(), Math.min(10, Math.max(2, refreshIntervalSeconds)) * 1000);
-    return () => { mounted.current = false; window.clearInterval(id); };
+    return () => { mounted.current = false; generation.current += 1; window.clearInterval(id); };
   }, [refresh, refreshIntervalSeconds]);
   return { metrics, processes, history, loading, error, refresh };
 }
