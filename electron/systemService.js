@@ -3,148 +3,99 @@
 const si = require("systeminformation");
 const { getRunningProcesses } = require("./processService");
 
-/**
- * @typedef {Object} DiskMetric
- * @property {string} filesystem
- * @property {string} mount
- * @property {number} sizeBytes
- * @property {number} usedBytes
- * @property {number} availableBytes
- * @property {number} usagePercent
- */
-
-/**
- * @typedef {Object} SystemSnapshot
- * @property {string} capturedAt ISO-8601 timestamp.
- * @property {{manufacturer: string, brand: string, cores: number, speedGhz: number, loadPercent: number}} cpu
- * @property {{totalBytes: number, usedBytes: number, availableBytes: number, usagePercent: number}} memory
- * @property {DiskMetric} disk The selected primary disk metric.
- * @property {DiskMetric[]} disks All filesystem records returned by systeminformation.
- * @property {{pid: number, name: string, cpuPercent: number, memoryPercent: number}[]} processes
- */
-
-/** Convert unknown input into a finite number. */
 function finiteNumber(value, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
-
-/** Ensure normal metric values are finite and non-negative. */
-function nonNegativeNumber(value) {
-  return Math.max(0, finiteNumber(value));
-}
-
-/** Return a finite, one-decimal percentage in the range 0–100. */
+function nonNegative(value) { return Math.max(0, finiteNumber(value)); }
 function percentage(value) {
-  return Math.min(100, Math.max(0, Math.round(nonNegativeNumber(value) * 10) / 10));
+  return Math.round(Math.min(100, Math.max(0, finiteNumber(value))) * 10) / 10;
 }
-
-function safeText(value, fallback = "Unknown", maxLength = 160) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return fallback;
-  }
-  return value.trim().slice(0, maxLength);
+function safeText(value, fallback = "Unavailable", maxLength = 160) {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : fallback;
 }
-
-/**
- * Convert a filesystem record into a stable serializable metric object.
- * A missing or invalid size produces a zero usage percentage.
- *
- * @param {import("systeminformation").Systeminformation.FsSizeData} record
- * @returns {DiskMetric}
- */
+async function safely(query, fallback) {
+  try { return await query(); } catch { return fallback; }
+}
 function toDiskMetric(record) {
-  const sizeBytes = nonNegativeNumber(record.size);
-  const usedBytes = nonNegativeNumber(record.used);
-  const availableBytes = nonNegativeNumber(record.available);
-  const reportedUse = Number(record.use);
-  const calculatedUse = sizeBytes > 0 ? (usedBytes / sizeBytes) * 100 : 0;
-
+  const sizeBytes = nonNegative(record.size);
+  const hasUsed = typeof record.used === "number" && Number.isFinite(record.used) && record.used >= 0;
+  const usedBytes = hasUsed ? Math.min(sizeBytes || nonNegative(record.used), record.used) : 0;
+  const availableBytes = nonNegative(record.available);
+  const available = sizeBytes > 0 && hasUsed;
   return {
     filesystem: safeText(record.fs),
     mount: safeText(record.mount, "Unavailable", 256),
     sizeBytes,
     usedBytes,
     availableBytes,
-    usagePercent: percentage(Number.isFinite(reportedUse) ? reportedUse : calculatedUse),
+    usagePercent: available ? percentage((usedBytes / sizeBytes) * 100) : 0,
+    available,
   };
 }
 
 /**
- * Select the primary disk metric.
- *
- * On macOS, prefer the filesystem mounted at "/" because it represents the
- * root volume. Some APFS layouts report the writable Data volume separately
- * at "/System/Volumes/Data", so use that as the next choice. If neither mount
- * is reported, select the record with the largest positive capacity; this is
- * a deterministic fallback, not a claim that it is the physical drive.
- *
- * @param {DiskMetric[]} disks
- * @returns {DiskMetric}
+ * Pick a single filesystem for the dashboard. On macOS prefer the writable
+ * APFS Data volume when it has valid capacity, then a usable root volume.
+ * Other systems prefer a usable root mount. If neither is available, choose
+ * the largest filesystem with positive capacity; otherwise return an
+ * unavailable metric. APFS volumes can share a physical container, so this
+ * is a filesystem-level figure, not a physical-drive total.
  */
-function selectPrimaryDisk(disks) {
+function selectPrimaryDisk(disks, platform = process.platform) {
   const unavailable = {
-    filesystem: "Unavailable",
-    mount: "Unavailable",
-    sizeBytes: 0,
-    usedBytes: 0,
-    availableBytes: 0,
-    usagePercent: 0,
+    filesystem: "Unavailable", mount: "Unavailable", sizeBytes: 0,
+    usedBytes: 0, availableBytes: 0, usagePercent: 0, available: false,
   };
-
-  if (disks.length === 0) return unavailable;
-
-  const rootDisk = disks.find((disk) => disk.mount === "/");
-  if (rootDisk) return rootDisk;
-
-  const dataDisk = disks.find((disk) => disk.mount === "/System/Volumes/Data");
-  if (dataDisk) return dataDisk;
-
-  return disks.reduce((largest, disk) =>
-    disk.sizeBytes > largest.sizeBytes ? disk : largest
-  , disks[0]);
+  if (!Array.isArray(disks) || disks.length === 0) return unavailable;
+  const usable = disks.filter((disk) => disk && disk.available && disk.sizeBytes > 0);
+  if (platform === "darwin") {
+    const data = usable.find((disk) => disk.mount === "/System/Volumes/Data");
+    if (data) return data;
+  }
+  const root = usable.find((disk) => disk.mount === "/");
+  if (root) return root;
+  if (usable.length) return usable.reduce((largest, disk) => disk.sizeBytes > largest.sizeBytes ? disk : largest);
+  return { ...disks[0], available: false, usagePercent: 0, usedBytes: nonNegative(disks[0].usedBytes), sizeBytes: nonNegative(disks[0].sizeBytes) };
 }
 
-/**
- * Collect a serializable snapshot of system metrics.
- * All systeminformation queries are independent and run concurrently.
- * Raw process command lines, paths, and parameters are not included.
- *
- * @returns {Promise<SystemSnapshot>}
- */
 async function getSystemSnapshot() {
-  const [cpu, load, memory, filesystemRecords, processes] = await Promise.all([
-    si.cpu(),
-    si.currentLoad(),
-    si.mem(),
-    si.fsSize(),
-    getRunningProcesses(),
+  const [cpuInfo, load, memory, filesystemRecords, processes] = await Promise.all([
+    safely(() => si.cpu(), {}),
+    safely(() => si.currentLoad(), null),
+    safely(() => si.mem(), null),
+    safely(() => si.fsSize(), []),
+    safely(() => getRunningProcesses(), []),
   ]);
-
-  const totalBytes = nonNegativeNumber(memory.total);
-  const usedBytes = nonNegativeNumber(memory.used);
-  const diskRecords = Array.isArray(filesystemRecords) ? filesystemRecords : [];
-  const disks = diskRecords.map(toDiskMetric);
+  const totalBytes = nonNegative(memory && memory.total);
+  const rawUsedMemory = memory && typeof memory.used === "number" && Number.isFinite(memory.used) && memory.used >= 0 ? memory.used : null;
+  const memoryAvailable = totalBytes > 0 && rawUsedMemory !== null;
+  const usedBytes = memoryAvailable ? Math.min(totalBytes, rawUsedMemory) : 0;
+  const cpuAvailable = Boolean(load && typeof load.currentLoad === "number" && Number.isFinite(load.currentLoad) && load.currentLoad >= 0 && load.currentLoad <= 100);
+  const rawDisks = Array.isArray(filesystemRecords) ? filesystemRecords.filter((record) => record && typeof record === "object") : [];
+  const disks = rawDisks.map(toDiskMetric);
+  const disk = selectPrimaryDisk(disks);
 
   return {
     capturedAt: new Date().toISOString(),
     cpu: {
-      manufacturer: safeText(cpu.manufacturer),
-      brand: safeText(cpu.brand),
-      cores: Math.max(0, Math.trunc(finiteNumber(cpu.cores))),
-      speedGhz: nonNegativeNumber(cpu.speed),
-      loadPercent: percentage(load.currentLoad),
+      manufacturer: safeText(cpuInfo.manufacturer),
+      brand: safeText(cpuInfo.brand),
+      cores: Math.max(0, Math.trunc(finiteNumber(cpuInfo.cores))),
+      speedGhz: nonNegative(cpuInfo.speed),
+      loadPercent: cpuAvailable ? percentage(load.currentLoad) : 0,
+      available: cpuAvailable,
     },
     memory: {
       totalBytes,
       usedBytes,
-      availableBytes: nonNegativeNumber(memory.available),
-      usagePercent: totalBytes > 0 ? percentage((usedBytes / totalBytes) * 100) : 0,
+      availableBytes: nonNegative(memory && memory.available),
+      usagePercent: memoryAvailable ? percentage((usedBytes / totalBytes) * 100) : 0,
+      available: memoryAvailable,
     },
-    disk: selectPrimaryDisk(disks),
+    disk,
     disks,
-    processes,
+    processes: Array.isArray(processes) ? processes : [],
   };
 }
 
-module.exports = { getSystemSnapshot, selectPrimaryDisk };
+module.exports = { getSystemSnapshot, selectPrimaryDisk, toDiskMetric };
