@@ -113,7 +113,7 @@ test("process service filters invalid PIDs, normalizes readings, sorts and limit
   });
   const processes = await getRunningProcesses();
   assert.equal(processes.length, DEFAULT_PROCESS_LIMIT);
-  assert.equal(processes[0].name, "high");
+  assert.equal(processes[0].pid, 4); // 140% is clamped to 100% before sorting.\n  assert.equal(processes[1].name, "high");
   assert.equal(processes.some((process) => process.pid === -1), false);
   assert.equal(processes.find((process) => process.pid === 4).name, "Unknown process");
   assert.equal(processes.find((process) => process.pid === 4).cpuPercent, 100);
