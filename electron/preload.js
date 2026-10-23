@@ -56,7 +56,7 @@ const IPC_CHANNELS = Object.freeze({
 function isSystemSnapshot(value) {
   if (value === null || typeof value !== "object") return false;
 
-  const snapshot = value;
+  const snapshot = /** @type {Record<string, any>} */ (value);
   return (
     typeof snapshot.capturedAt === "string" &&
     snapshot.cpu !== null &&
