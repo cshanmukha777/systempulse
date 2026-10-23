@@ -110,6 +110,7 @@ const systemPulseApi = Object.freeze({
       throw new TypeError("systemPulse.onSnapshot requires a callback function");
     }
 
+    /** @param {import("electron").IpcRendererEvent} _event @param {unknown} payload */
     const listener = (_event, payload) => {
       if (isSystemSnapshot(payload)) {
         callback(payload);
