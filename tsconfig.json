@@ -18,6 +18,7 @@
     "electron/systemMetrics.ts",
     "electron/processMetrics.ts",
     "electron/ipcHandlers.js",
-    "electron/preload.js"
+    "electron/preload.js",
+    "types/systemPulse.d.ts"
   ]
 }
