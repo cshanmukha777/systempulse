@@ -32,8 +32,12 @@ function safePercent(value: unknown): number {
 }
 
 function normalizeProcess(
-  process: SystemInformationProcess,
+  process: SystemInformationProcess | null | undefined,
 ): RunningProcessMetric | null {
+  if (process === null || typeof process !== "object") {
+    return null;
+  }
+
   if (
     typeof process.pid !== "number" ||
     !Number.isSafeInteger(process.pid) ||
