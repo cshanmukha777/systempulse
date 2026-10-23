@@ -2,7 +2,7 @@
 
 module.exports = [
   {
-    files: ["electron/**/*.js", "src/utils/**/*.js", "tests/**/*.js"],
+    files: ["electron/**/*.js", "src/utils/**/*.js", "src/utils/**/*.mjs", "tests/**/*.js", "tests/**/*.mjs"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "commonjs",
@@ -28,5 +28,9 @@ module.exports = [
       "no-constant-binary-expression": "error",
       "valid-typeof": "error",
     },
+  },
+  {
+    files: ["src/utils/**/*.mjs", "tests/**/*.mjs"],
+    languageOptions: { sourceType: "module" },
   },
 ];
