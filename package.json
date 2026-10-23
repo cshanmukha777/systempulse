@@ -63,21 +63,7 @@
       "minimumSystemVersion": "12.0"
     },
     "dmg": {
-      "title": "SystemPulse ${version}",
-      "contents": [
-        {
-          "x": 160,
-          "y": 200,
-          "type": "file",
-          "path": "SystemPulse.app"
-        },
-        {
-          "x": 400,
-          "y": 200,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
+      "title": "SystemPulse ${version}"
     }
   }
 }
