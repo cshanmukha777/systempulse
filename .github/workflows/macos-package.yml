@@ -39,7 +39,7 @@ jobs:
 
           MOUNT_ROOT="$(mktemp -d)"
           hdiutil attach "$DMG" -nobrowse -readonly -mountroot "$MOUNT_ROOT" > "$RUNNER_TEMP/systempulse-dmg-mount.txt"
-          MOUNT_POINT="$(awk '/Apple_HFS|Apple_APFS/ { sub(/^.*Apple_HFS[[:space:]]+/, ""); sub(/^.*Apple_APFS[[:space:]]+/, ""); print; exit }' "$RUNNER_TEMP/systempulse-dmg-mount.txt")"
+          MOUNT_POINT="$(find "$MOUNT_ROOT" -mindepth 1 -maxdepth 1 -type d -print -quit)"
           test -n "$MOUNT_POINT"
           APP_IN_DMG="$MOUNT_POINT/SystemPulse.app"
           test -d "$APP_IN_DMG"
