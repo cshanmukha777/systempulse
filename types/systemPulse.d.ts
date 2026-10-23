@@ -7,6 +7,7 @@ export interface SystemProcess {
 
 export interface CpuMetrics {
   loadPercent: number;
+  available?: boolean;
 }
 
 export interface MemoryMetrics {
