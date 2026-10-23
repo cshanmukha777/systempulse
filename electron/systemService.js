@@ -3,19 +3,25 @@
 const si = require("systeminformation");
 const { getRunningProcesses } = require("./processService");
 
+/** @param {unknown} value @param {number} [fallback] */
 function finiteNumber(value, fallback = 0) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
+/** @param {unknown} value */
 function nonNegative(value) { return Math.max(0, finiteNumber(value)); }
+/** @param {unknown} value */
 function percentage(value) {
   return Math.round(Math.min(100, Math.max(0, finiteNumber(value))) * 10) / 10;
 }
+/** @param {unknown} value @param {string} [fallback] @param {number} [maxLength] */
 function safeText(value, fallback = "Unavailable", maxLength = 160) {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : fallback;
 }
+/** @param {() => Promise<any>} query @param {any} fallback @returns {Promise<any>} */
 async function safely(query, fallback) {
   try { return await query(); } catch { return fallback; }
 }
+/** @param {import("systeminformation").Systeminformation.FsSizeData} record */
 function toDiskMetric(record) {
   const sizeBytes = nonNegative(record.size);
   const hasUsed = typeof record.used === "number" && Number.isFinite(record.used) && record.used >= 0;
@@ -41,6 +47,7 @@ function toDiskMetric(record) {
  * unavailable metric. APFS volumes can share a physical container, so this
  * is a filesystem-level figure, not a physical-drive total.
  */
+/** @param {ReturnType<typeof toDiskMetric>[]} disks @param {NodeJS.Platform} [platform] */
 function selectPrimaryDisk(disks, platform = process.platform) {
   const unavailable = {
     filesystem: "Unavailable", mount: "Unavailable", sizeBytes: 0,
