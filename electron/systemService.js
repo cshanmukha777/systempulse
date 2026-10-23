@@ -1,6 +1,7 @@
 "use strict";
 
 const si = require("systeminformation");
+const { getRunningProcesses } = require("./processService");
 
 /**
  * @typedef {Object} DiskMetric
@@ -19,7 +20,7 @@ const si = require("systeminformation");
  * @property {{totalBytes: number, usedBytes: number, availableBytes: number, usagePercent: number}} memory
  * @property {DiskMetric} disk The selected primary disk metric.
  * @property {DiskMetric[]} disks All filesystem records returned by systeminformation.
- * @property {{pid: number, name: string, state: string, cpuPercent: number, memoryPercent: number}[]} processes
+ * @property {import("./processService").RunningProcess[]} processes
  */
 
 /** Convert unknown input into a finite number. */
@@ -112,30 +113,18 @@ function selectPrimaryDisk(disks) {
  * @returns {Promise<SystemSnapshot>}
  */
 async function getSystemSnapshot() {
-  const [cpu, load, memory, filesystemRecords, processData] = await Promise.all([
+  const [cpu, load, memory, filesystemRecords, processes] = await Promise.all([
     si.cpu(),
     si.currentLoad(),
     si.mem(),
     si.fsSize(),
-    si.processes(),
+    getRunningProcesses(),
   ]);
 
   const totalBytes = nonNegativeNumber(memory.total);
   const usedBytes = nonNegativeNumber(memory.used);
-  const processList = Array.isArray(processData.list) ? processData.list : [];
   const diskRecords = Array.isArray(filesystemRecords) ? filesystemRecords : [];
   const disks = diskRecords.map(toDiskMetric);
-
-  const processes = processList
-    .map((process) => ({
-      pid: finiteNumber(process.pid, -1),
-      name: safeText(process.name),
-      state: safeText(process.state, "unknown", 48),
-      cpuPercent: percentage(process.cpu),
-      memoryPercent: percentage(process.mem),
-    }))
-    .filter((process) => process.pid >= 0)
-    .sort((a, b) => b.cpuPercent - a.cpuPercent);
 
   return {
     capturedAt: new Date().toISOString(),
