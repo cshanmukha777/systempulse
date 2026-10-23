@@ -3,6 +3,7 @@ import MetricCard, { formatBytes } from "./components/MetricCard";
 import ProcessTable from "./components/ProcessTable";
 import CpuHistoryChart from "./components/CpuHistoryChart";
 import { useSystemPulse } from "./hooks/useSystemPulse";
+import { shouldNotifyCpuThreshold } from "./utils/notificationThreshold";
 
 interface Preferences { cpuWarningThreshold: number; refreshIntervalSeconds: number; notificationsEnabled: boolean; }
 const DEFAULT_PREFERENCES: Preferences = { cpuWarningThreshold: 80, refreshIntervalSeconds: 3, notificationsEnabled: false };
@@ -36,7 +37,7 @@ export default function App() {
   }, [preferences]);
 
   useEffect(() => {
-    if (aboveThreshold && !wasAboveThreshold.current && preferences.notificationsEnabled && typeof window.Notification !== "undefined") {
+    if (shouldNotifyCpuThreshold(wasAboveThreshold.current, cpuPercent, preferences.cpuWarningThreshold, preferences.notificationsEnabled, cpuAvailable) && typeof window.Notification !== "undefined") {
       const notify = () => {
         try { new window.Notification("SystemPulse CPU warning", { body: `CPU usage is ${cpuPercent.toFixed(1)}%, above your ${preferences.cpuWarningThreshold}% threshold.` }); } catch { /* Notifications are optional. */ }
       };
