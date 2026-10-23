@@ -70,6 +70,8 @@ The build output is written to dist/. This command builds the renderer; it does 
 | npm test | Run deterministic unit and service tests with Node's built-in test runner. |
 | npm run build | Create the production renderer bundle. |
 | npm run check | Run typecheck, lint, tests, and production renderer build in sequence. |
+| npm run package:mac | Build a universal macOS `.dmg` using electron-builder. |
+| npm run test:packaged | Run renderer integration checks against an installed `.app` bundle (macOS only). |
 
 ## Architecture
 
@@ -157,18 +159,34 @@ Security configuration should be re-reviewed whenever preload APIs, IPC channels
 
 ## Packaging and distribution
 
-There is currently no Electron Forge, Electron Builder, installer configuration, signing, or notarization pipeline in this repository. npm run build only generates the renderer bundle. A release workflow still needs to select a packaging tool, configure app icons and metadata, build and test per target OS/architecture, and set up signing/notarization where required.
+The project uses **electron-builder 26.0.12** for macOS packaging. App metadata is configured in `package.json`:
 
-Do not describe a renderer build or the Ubuntu smoke test as a packaged-app verification. Before distribution, follow the packaged-app section of docs/TEST_PLAN.md.
+- Product name: `SystemPulse`
+- Version: `1.0.0`
+- Bundle identifier: `com.shanmukha.systempulse`
+- Icon source: `build/icon.svg`
+- Output: `release/SystemPulse-1.0.0-universal.dmg`
+- Target: universal macOS app bundle for Intel and Apple Silicon
+
+On macOS, run:
+
+~~~bash
+npm run package:mac
+~~~
+
+The command builds the Vite renderer first, then creates a universal `.dmg`. GitHub Actions (`.github/workflows/macos-package.yml`) runs the full check suite, builds the DMG on a macOS runner, verifies that the image is readable and nonempty, checks bundle metadata, mounts and copies the app to `/Applications`, confirms the packaged app launches with no Vite development server, and runs renderer integration checks for live metrics, process rows, saved preferences, notification threshold behavior, and JSON export. The resulting disk image is uploaded as the `SystemPulse-macOS-DMG` workflow artifact.
+
+The current package is **unsigned and not notarized** because no Apple Developer signing identity or notarization credentials are configured. macOS may show a security warning when opening a downloaded build. This is suitable for project/testing distribution, not a signed public release. The native macOS About panel is configured in the app menu; its click-level UI automation may be limited by hosted-runner Accessibility permissions.
 
 ## Known limitations
 
-- The app has not been verified here as a signed/installed package on macOS, Windows, and Linux; the CI startup smoke test runs on Ubuntu.
+- The release pipeline targets macOS only; Windows and Linux packages are not configured.
+- The macOS DMG is unsigned and not notarized. A signing identity and Apple notarization credentials are required for frictionless public distribution.
 - Automated tests use mocks and do not validate the machine's actual metric readings.
 - Notification delivery is controlled by operating-system permission and notification settings.
 - Disk utilization reports one filesystem. On macOS, APFS volumes can share a physical container, so the displayed volume is not necessarily the total physical-drive capacity.
 - The renderer export triggers a JSON download through the Chromium download mechanism; this is not yet a native Save dialog.
-- The test suite does not yet include a full Electron UI end-to-end runner. Tray behavior, real notifications, export, display removal, and packaged builds require manual/platform testing.
+- The macOS packaged-app integration script uses a test notification stub to verify threshold-triggered notification behavior; it does not validate actual Notification Center delivery. Tray behavior, real notification delivery, display removal, and some native menu interactions still require hands-on platform testing.
 - The legacy getSnapshot() API has a different response shape from the newer ServiceResponse<T> metrics/process methods.
 
 ## Contributing
