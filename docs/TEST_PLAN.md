@@ -46,14 +46,17 @@ Run `npm install`, `npm run typecheck`, and `npm run build` before interactive t
 
 ## 6. Packaged-app testing
 
-- Install and launch the actual package on every supported OS; a renderer build is not a packaged-app test.
-- Verify packaged local HTML and preload, metrics/processes, window restoration, tray, notifications, export, and quit cleanup.
-- Test fresh install and upgrade over existing user data. Confirm preferences and window state remain usable.
-- Test signing/notarization if part of the release process.
+- Build the universal macOS DMG with `npm run package:mac`; expected output is `release/SystemPulse-1.0.0-universal.dmg`.
+- Verify the DMG is nonempty and readable with `hdiutil verify`, mount it, and inspect `SystemPulse.app/Contents/Info.plist` for version `1.0.0` and bundle ID `com.shanmukha.systempulse`.
+- Install by copying `SystemPulse.app` to `/Applications`, then launch it with no Vite process listening on port 5173.
+- Run `SYSTEMPULSE_APP_PATH=/Applications/SystemPulse.app npm run test:packaged` on macOS. The script uses Electron DevTools to verify file-based renderer loading, live metric cards, process rows/search, preference persistence across reload, threshold notification invocation with a stub, and a nonempty valid JSON export file.
+- Verify the native About panel through the macOS application menu. Hosted-runner Accessibility permissions may prevent AppleScript from driving this menu; if so, record the limitation rather than claiming the panel was clicked successfully.
+- Test actual Notification Center delivery, tray rendering/reopen/quit, window restoration, fresh install/upgrade, and signing/notarization manually on a real Mac.
 
 ## Automation and known limitations
 
-- GitHub Actions runs dependency installation, TypeScript checks, renderer build, and a 20-second headless Electron/Vite startup smoke test on Ubuntu.
-- The smoke test does not verify interactive UI, tray rendering, notifications, export completion, or real hardware readings.
-- No dedicated unit or end-to-end test runner is configured; failure injection and packaged-app checks remain manual.
+- `.github/workflows/macos-package.yml` runs typecheck, lint, unit tests, and renderer build on a macOS runner; builds a universal DMG; verifies its file size and disk-image structure; checks bundle metadata; copies the app to `/Applications`; launches the packaged app without a development server; and runs the packaged renderer integration script.
+- The test notification stub confirms that the app invokes its notification path at a threshold crossing; it does not prove actual Notification Center delivery.
+- The native About-panel AppleScript interaction is best-effort because hosted runner accessibility permissions can vary. Report it as unverified if the automation cannot access the menu/window.
+- The package is unsigned and not notarized. A signing identity and Apple notarization credentials are not configured.
 - Notification delivery depends on host OS settings. Disk figures describe a filesystem, not necessarily a physical drive; macOS APFS volumes may share a container.
