@@ -40,6 +40,7 @@ export interface DiskSnapshot {
   usedBytes: number;
   availableBytes: number;
   usagePercent: number;
+  available?: boolean;
 }
 
 export interface SystemSnapshot {
@@ -50,6 +51,7 @@ export interface SystemSnapshot {
     cores: number;
     speedGhz: number;
     loadPercent: number;
+    available?: boolean;
   };
   memory: {
     totalBytes: number;
