@@ -29,6 +29,54 @@
     "dev:ci": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron . --no-sandbox\"",
     "test": "node --test tests/*.test.js",
     "lint": "npx --yes eslint@9.39.1 electron/*.js src/utils/*.js tests/*.js eslint.config.js",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "package:mac": "npm run build && npx --yes electron-builder@26.0.12 --mac dmg --universal"
+  },
+  "productName": "SystemPulse",
+  "build": {
+    "appId": "com.shanmukha.systempulse",
+    "productName": "SystemPulse",
+    "artifactName": "SystemPulse-${version}-universal.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.svg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "identity": null,
+      "minimumSystemVersion": "12.0"
+    },
+    "dmg": {
+      "title": "SystemPulse ${version}",
+      "contents": [
+        {
+          "x": 160,
+          "y": 200,
+          "type": "file",
+          "path": "SystemPulse.app"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
   }
 }
