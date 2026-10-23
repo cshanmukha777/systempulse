@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { clampPercent, formatPercent, formatBytes } from "../utils/formatters";
-export { formatPercent, formatBytes } from "../utils/formatters";
+import { clampPercent, formatPercent, formatBytes } from "../utils/formatters.mjs";
+export { formatPercent, formatBytes } from "../utils/formatters.mjs";
 interface MetricCardProps { title: string; percent: number; detail: string; icon: ReactNode; available?: boolean; }
 export default function MetricCard({ title, percent, detail, icon, available = true }: MetricCardProps) {
   const safePercent = clampPercent(percent);
