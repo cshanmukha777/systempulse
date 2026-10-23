@@ -13,7 +13,7 @@ function loadPreferences(): Preferences {
     if (parsed && typeof parsed === "object") {
       const value = parsed as Partial<Preferences>;
       return {
-        cpuWarningThreshold: typeof value.cpuWarningThreshold === "number" && Number.isFinite(value.cpuWarningThreshold) ? Math.min(100, Math.max(50, value.cpuWarningThreshold)) : DEFAULT_PREFERENCES.cpuWarningThreshold,
+        cpuWarningThreshold: typeof value.cpuWarningThreshold === "number" && Number.isFinite(value.cpuWarningThreshold) ? Math.min(100, Math.max(0, value.cpuWarningThreshold)) : DEFAULT_PREFERENCES.cpuWarningThreshold,
         refreshIntervalSeconds: typeof value.refreshIntervalSeconds === "number" && Number.isFinite(value.refreshIntervalSeconds) ? Math.min(10, Math.max(2, value.refreshIntervalSeconds)) : DEFAULT_PREFERENCES.refreshIntervalSeconds,
         notificationsEnabled: value.notificationsEnabled === true,
       };
@@ -65,7 +65,7 @@ export default function App() {
     <section className="panel preferences-panel" aria-labelledby="preferences-heading">
       <div className="panel-heading"><div><h2 id="preferences-heading">Monitoring preferences</h2><p>Saved on this device and applied automatically</p></div><span className="count-pill">Local settings</span></div>
       <div className="preferences-grid">
-        <label className="preference-control"><span className="preference-label">CPU warning threshold</span><span className="preference-help">Show a warning when CPU usage reaches this level.</span><span className="range-row"><input type="range" min="50" max="100" step="5" value={preferences.cpuWarningThreshold} onChange={(event) => updatePreference("cpuWarningThreshold", Number(event.target.value))} /><output>{preferences.cpuWarningThreshold}%</output></span></label>
+        <label className="preference-control"><span className="preference-label">CPU warning threshold</span><span className="preference-help">Show a warning when CPU usage reaches this level.</span><span className="range-row"><input type="range" min="0" max="100" step="5" value={preferences.cpuWarningThreshold} onChange={(event) => updatePreference("cpuWarningThreshold", Number(event.target.value))} /><output>{preferences.cpuWarningThreshold}%</output></span></label>
         <label className="preference-control"><span className="preference-label">Refresh interval</span><span className="preference-help">Choose how often metrics are collected.</span><select value={preferences.refreshIntervalSeconds} onChange={(event) => updatePreference("refreshIntervalSeconds", Number(event.target.value))}>{[2,3,4,5,6,7,8,9,10].map((seconds) => <option key={seconds} value={seconds}>{seconds} seconds</option>)}</select></label>
         <div className="preference-control"><span className="preference-label">Desktop notifications</span><span className="preference-help">Notify when CPU usage crosses the threshold.</span><label className="toggle-control"><input type="checkbox" checked={preferences.notificationsEnabled} onChange={(event) => void toggleNotifications(event.target.checked)} /><span>{preferences.notificationsEnabled ? "Enabled" : "Disabled"}</span></label>{typeof window.Notification !== "undefined" && window.Notification.permission === "denied" && <span className="preference-note">Notifications are blocked by system/browser permissions.</span>}</div>
       </div>
