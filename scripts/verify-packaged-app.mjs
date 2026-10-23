@@ -20,7 +20,9 @@ let socket;
 let nextId = 0;
 const pending = new Map();
 
-function statLabel(bytes) { return `${bytes} bytes`; }\n\nfunction connect(url) {
+function statLabel(bytes) { return `${bytes} bytes`; }
+
+function connect(url) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
     const timeout = setTimeout(() => reject(new Error("Timed out connecting to Electron DevTools.")), 15000);
