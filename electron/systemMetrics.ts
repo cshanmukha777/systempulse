@@ -81,7 +81,7 @@ function normalizeDisk(record: FileSystemRecord): NormalizedDisk {
   return {
     mount: safeLabel(record.mount),
     filesystem: safeLabel(record.fs),
-    usedBytes: nonNegativeFinite(record.used),
+    usedBytes: hasCapacity ? Math.min(record.size, nonNegativeFinite(record.used)) : nonNegativeFinite(record.used),
     totalBytes: nonNegativeFinite(record.size),
     hasCapacity,
     hasUsage: hasCapacity && hasUsage,
@@ -150,14 +150,15 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
     safely(() => si.fsSize()),
   ]);
 
-  const cpuAvailable = load !== null && isFiniteNumber(load.currentLoad);
+  const cpuAvailable = load !== null && isFiniteNumber(load.currentLoad) && load.currentLoad >= 0 && load.currentLoad <= 100;
   const totalMemory = nonNegativeFinite(memory?.total);
-  const usedMemory = nonNegativeFinite(memory?.used);
+  const usedMemory = totalMemory > 0 ? Math.min(totalMemory, nonNegativeFinite(memory?.used)) : nonNegativeFinite(memory?.used);
   const memoryAvailable =
     memory !== null &&
     isFiniteNumber(memory.total) &&
     memory.total > 0 &&
-    isFiniteNumber(memory.used);
+    isFiniteNumber(memory.used) &&
+    memory.used >= 0;
 
   const records: FileSystemRecord[] = Array.isArray(fileSystemRecords)
     ? fileSystemRecords.filter((record) => record !== null && typeof record === "object")
