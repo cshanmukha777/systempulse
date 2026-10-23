@@ -60,6 +60,37 @@ function isTrustedIpcSender(event) {
   return Boolean(event.senderFrame && event.senderFrame === event.sender.mainFrame && isTrustedUrl(event.senderFrame.url));
 }
 
+function configureApplicationMenu() {
+  if (process.platform !== "darwin") return;
+
+  app.setName("SystemPulse");
+  app.setAboutPanelOptions({
+    applicationName: "SystemPulse",
+    applicationVersion: app.getVersion(),
+    version: app.getVersion(),
+    copyright: "Copyright © 2026 Shanmukha",
+    credits: "Smart Desktop System Monitor",
+  });
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    {
+      label: "SystemPulse",
+      submenu: [
+        { label: "About SystemPulse", role: "about" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "Window",
+      submenu: [{ role: "minimize" }, { role: "zoom" }],
+    },
+  ]));
+}
+
 function registerIpcHandlers() {
   if (handlersRegistered) return;
   ipcMain.handle("system:get-snapshot", async (event) => {
@@ -179,6 +210,7 @@ function stopSystemUpdates() {
 }
 
 app.whenReady().then(() => {
+  configureApplicationMenu();
   registerIpcHandlers();
   createTray();
   createWindow();
