@@ -1,0 +1,73 @@
+name: SystemPulse macOS package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-macos:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Run typecheck, lint, unit tests, and renderer build
+        run: npm run check
+      - name: Build universal macOS DMG
+        run: npm run package:mac
+      - name: Verify DMG and install packaged application
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG="release/SystemPulse-1.0.0-universal.dmg"
+          test -s "$DMG"
+          echo "DMG exists: $DMG ($(stat -f%z "$DMG") bytes)"
+          hdiutil verify "$DMG"
+
+          MOUNT_ROOT="$(mktemp -d)"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountroot "$MOUNT_ROOT" > "$RUNNER_TEMP/systempulse-dmg-mount.txt"
+          MOUNT_POINT="$(awk '$NF ~ /^\// { print $NF; exit }' "$RUNNER_TEMP/systempulse-dmg-mount.txt")"
+          test -n "$MOUNT_POINT"
+          APP_IN_DMG="$MOUNT_POINT/SystemPulse.app"
+          test -d "$APP_IN_DMG"
+          test -s "$APP_IN_DMG/Contents/Info.plist"
+
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_IN_DMG/Contents/Info.plist")"
+          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_IN_DMG/Contents/Info.plist")"
+          test "$BUNDLE_ID" = "com.shanmukha.systempulse"
+          test "$APP_VERSION" = "1.0.0"
+          echo "Bundle metadata verified: $BUNDLE_ID $APP_VERSION"
+
+          sudo rm -rf /Applications/SystemPulse.app
+          sudo ditto "$APP_IN_DMG" /Applications/SystemPulse.app
+          hdiutil detach "$MOUNT_POINT" -quiet
+          test -s /Applications/SystemPulse.app/Contents/Resources/app.asar
+
+          if lsof -nP -iTCP:5173 -sTCP:LISTEN; then
+            echo "Unexpected development server is listening on port 5173."
+            exit 1
+          fi
+          echo "No Vite development server is running; launching installed packaged app."
+          SYSTEMPULSE_APP_PATH="/Applications/SystemPulse.app" \
+          SYSTEMPULSE_DOWNLOAD_DIR="$RUNNER_TEMP/systempulse-downloads" \
+            npm run test:packaged
+      - name: Upload verified macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: SystemPulse-macOS-DMG
+          path: release/SystemPulse-1.0.0-universal.dmg
+          if-no-files-found: error
+          retention-days: 30
