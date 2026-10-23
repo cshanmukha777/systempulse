@@ -10,9 +10,13 @@
     "noEmit": true,
     "types": [
       "node"
-    ]
+    ],
+    "allowJs": true,
+    "checkJs": true
   },
   "include": [
-    "electron/systemMetrics.ts"
+    "electron/systemMetrics.ts",
+    "electron/processService.js",
+    "electron/systemService.js"
   ]
 }
