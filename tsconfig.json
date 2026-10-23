@@ -16,6 +16,8 @@
   },
   "include": [
     "electron/systemMetrics.ts",
-    "electron/processMetrics.ts"
+    "electron/processMetrics.ts",
+    "electron/ipcHandlers.js",
+    "electron/preload.js"
   ]
 }
