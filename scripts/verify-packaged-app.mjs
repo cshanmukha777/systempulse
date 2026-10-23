@@ -20,7 +20,7 @@ let socket;
 let nextId = 0;
 const pending = new Map();
 
-function connect(url) {
+function statLabel(bytes) { return `${bytes} bytes`; }\n\nfunction connect(url) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
     const timeout = setTimeout(() => reject(new Error("Timed out connecting to Electron DevTools.")), 15000);
@@ -106,6 +106,30 @@ try {
   });
   console.log("PASS: packaged renderer loaded from file:// and displayed live metrics plus process rows.");
 
+  const processName = await evaluate(`(() => {
+    const row = document.querySelector(".process-panel tbody tr");
+    const input = document.querySelector(".process-panel .search-field input");
+    if (!row || !input) throw new Error("Process search or rows are unavailable.");
+    const name = row.querySelector("td")?.textContent?.trim();
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    set.call(input, name);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return name;
+  })()`);
+  await waitUntil("process search filtering", async () => {
+    const state = await evaluate(`({ rows: [...document.querySelectorAll(".process-panel tbody tr")].map((row) => row.textContent.toLocaleLowerCase()), query: document.querySelector(".process-panel .search-field input")?.value.toLocaleLowerCase() || "" })`);
+    return state.query && state.rows.length > 0 && state.rows.every((row) => row.includes(state.query)) ? state : false;
+  });
+  await evaluate(`(() => {
+    const input = document.querySelector(".process-panel .search-field input");
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    set.call(input, "");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  console.log("PASS: process rows render and process-name filtering works.");
+
   await evaluate(`(() => {
     const slider = document.querySelector('input[type="range"]');
     const select = document.querySelector(".preferences-panel select");
@@ -165,8 +189,17 @@ try {
     }
     return { ...parsed, feedback: payload.feedback };
   });
-  await waitUntil("downloaded JSON file", async () => fs.readdirSync(downloadDir).find((name) => /^systempulse-.*\.json$/.test(name)));
-  console.log("PASS: Export JSON created a valid payload and a nonempty downloaded .json file.");
+  const downloadedName = await waitUntil("downloaded JSON file", async () => {
+    const name = fs.readdirSync(downloadDir).find((entry) => /^systempulse-.*\.json$/.test(entry));
+    if (!name) return false;
+    const stat = fs.statSync(path.join(downloadDir, name));
+    return stat.isFile() && stat.size > 0 ? name : false;
+  });
+  const downloadedPayload = JSON.parse(fs.readFileSync(path.join(downloadDir, downloadedName), "utf8"));
+  if (downloadedPayload.app !== "SystemPulse" || !Array.isArray(downloadedPayload.processes)) {
+    throw new Error("Downloaded JSON file does not contain the expected SystemPulse export.");
+  }
+  console.log(`PASS: Export JSON produced a nonempty file (${statLabel(fs.statSync(path.join(downloadDir, downloadedName)).size)}).`);
 
   try {
     execFileSync("osascript", ["-e", 'tell application "SystemPulse" to activate', "-e", 'tell application "System Events" to tell process "SystemPulse" to click menu bar item "SystemPulse" of menu bar 1', "-e", 'tell application "System Events" to tell process "SystemPulse" to click menu item "About SystemPulse" of menu 1 of menu bar item "SystemPulse" of menu bar 1'], { stdio: "ignore", timeout: 8000 });
