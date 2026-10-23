@@ -70,7 +70,7 @@ async function getRunningProcesses() {
   return records
     .filter((process) => process != null)
     .map((process) => ({
-      pid: finiteNumber(process.pid, -1),
+      pid: Number.isSafeInteger(process.pid) && process.pid >= 0 ? process.pid : -1,
       name: safeProcessName(process.name),
       cpuPercent: safePercent(process.cpu),
       memoryPercent: safePercent(process.mem),
