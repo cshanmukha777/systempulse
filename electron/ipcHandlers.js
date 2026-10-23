@@ -17,10 +17,15 @@ const ERROR_RESPONSE = Object.freeze({
  * converted into a fixed serializable error response; raw errors are not sent
  * to the renderer.
  *
- * @param {{handle: Function}} ipcMain
- * @param {(event: unknown) => boolean} isTrustedIpcSender
+ * @param {import("electron").IpcMain} ipcMain
+ * @param {(event: import("electron").IpcMainInvokeEvent) => boolean} isTrustedIpcSender
  */
 function registerIpcHandlers(ipcMain, isTrustedIpcSender) {
+  /**
+   * @param {string} channel
+   * @param {() => Promise<any>} service
+   * @param {(value: any) => unknown} [mapResult]
+   */
   const register = (channel, service, mapResult = (value) => value) => {
     ipcMain.handle(channel, async (event) => {
       if (!isTrustedIpcSender(event)) {
