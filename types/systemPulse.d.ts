@@ -58,6 +58,7 @@ export interface SystemSnapshot {
     usedBytes: number;
     availableBytes: number;
     usagePercent: number;
+    available?: boolean;
   };
   disk: DiskSnapshot;
   disks: DiskSnapshot[];
