@@ -26,6 +26,9 @@
     "build": "vite build",
     "start": "electron .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.renderer.json",
-    "dev:ci": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron . --no-sandbox\""
+    "dev:ci": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron . --no-sandbox\"",
+    "test": "node --test tests/*.test.js",
+    "lint": "npx --yes eslint@9.39.1 electron/*.js src/utils/*.js tests/*.js eslint.config.js",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build"
   }
 }
