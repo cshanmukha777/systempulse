@@ -56,12 +56,12 @@ function registerIpcHandlers(ipcMain, isTrustedIpcSender) {
 
   register("system:get-metrics", getSystemSnapshot, (snapshot) => ({
     sampledAt: snapshot.capturedAt,
-    cpu: { loadPercent: snapshot.cpu.loadPercent, available: Number.isFinite(snapshot.cpu.loadPercent) },
+    cpu: { loadPercent: snapshot.cpu.loadPercent, available: snapshot.cpu.available !== false && Number.isFinite(snapshot.cpu.loadPercent) },
     memory: {
       usedBytes: snapshot.memory.usedBytes,
       totalBytes: snapshot.memory.totalBytes,
       usagePercent: snapshot.memory.usagePercent,
-      available: snapshot.memory.totalBytes > 0,
+      available: snapshot.memory.available !== false && snapshot.memory.totalBytes > 0,
     },
     disk: {
       mount: snapshot.disk.mount,
@@ -69,7 +69,7 @@ function registerIpcHandlers(ipcMain, isTrustedIpcSender) {
       usedBytes: snapshot.disk.usedBytes,
       totalBytes: snapshot.disk.sizeBytes,
       usagePercent: snapshot.disk.usagePercent,
-      available: snapshot.disk.sizeBytes > 0,
+      available: snapshot.disk.available !== false && snapshot.disk.sizeBytes > 0,
     },
   }));
 
