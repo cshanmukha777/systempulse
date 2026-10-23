@@ -30,7 +30,7 @@
     "test": "node --test tests/*.test.js",
     "lint": "npx --yes eslint@9.39.1 electron/*.js src/utils/*.js tests/*.js eslint.config.js",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "package:mac": "npm run build && npx --yes sharp-cli@5.1.0 -i build/icon.svg -o build/icon.png resize 1024 1024 && npx --yes electron-builder@26.0.12 --mac dmg --universal",
+    "package:mac": "npm run build && npx --yes sharp-cli@5.1.0 -i build/icon.svg -o 'build/{name}.png' resize 1024 1024 && test -s build/icon.png && npx --yes electron-builder@26.0.12 --mac dmg --universal",
     "test:packaged": "node scripts/verify-packaged-app.mjs"
   },
   "productName": "SystemPulse",
