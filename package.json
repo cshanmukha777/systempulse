@@ -30,7 +30,8 @@
     "test": "node --test tests/*.test.js",
     "lint": "npx --yes eslint@9.39.1 electron/*.js src/utils/*.js tests/*.js eslint.config.js",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "package:mac": "npm run build && npx --yes electron-builder@26.0.12 --mac dmg --universal"
+    "package:mac": "npm run build && npx --yes electron-builder@26.0.12 --mac dmg --universal",
+    "test:packaged": "node scripts/verify-packaged-app.mjs"
   },
   "productName": "SystemPulse",
   "build": {
