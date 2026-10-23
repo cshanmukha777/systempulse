@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { getSystemSnapshot } = require("./systemService");
+const { registerIpcHandlers: registerSystemRequestHandlers } = require("./ipcHandlers");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const PACKAGED_HTML_PATH = path.join(__dirname, "../dist/index.html");
@@ -116,6 +117,7 @@ function startSystemUpdates() {
 
 app.whenReady().then(() => {
   registerIpcHandlers();
+  registerSystemRequestHandlers(ipcMain, isTrustedIpcSender);
   createWindow();
   startSystemUpdates();
 
