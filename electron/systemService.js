@@ -20,7 +20,7 @@ const { getRunningProcesses } = require("./processService");
  * @property {{totalBytes: number, usedBytes: number, availableBytes: number, usagePercent: number}} memory
  * @property {DiskMetric} disk The selected primary disk metric.
  * @property {DiskMetric[]} disks All filesystem records returned by systeminformation.
- * @property {import("./processService").RunningProcess[]} processes
+ * @property {{pid: number, name: string, cpuPercent: number, memoryPercent: number}[]} processes
  */
 
 /** Convert unknown input into a finite number. */
