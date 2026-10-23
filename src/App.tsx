@@ -26,6 +26,7 @@ export default function App() {
   const [preferences, setPreferences] = useState<Preferences>(loadPreferences);
   const { metrics, processes, history, loading, error, refresh } = useSystemPulse(preferences.refreshIntervalSeconds);
   const wasAboveThreshold = useRef(false);
+  const [exportFeedback, setExportFeedback] = useState<string | null>(null);
   const cpuPercent = metrics?.cpu.loadPercent ?? 0;
   const cpuAvailable = Boolean(metrics && metrics.cpu.available !== false);
   const aboveThreshold = cpuAvailable && cpuPercent >= preferences.cpuWarningThreshold;
@@ -47,6 +48,31 @@ export default function App() {
   function updatePreference<K extends keyof Preferences>(key: K, value: Preferences[K]) {
     setPreferences((current) => ({ ...current, [key]: value }));
   }
+  function exportSnapshot() {
+    if (!metrics && processes.length === 0) {
+      setExportFeedback("Nothing to export yet. Wait for system data or retry the connection.");
+      return;
+    }
+    try {
+      const exportedAt = new Date().toISOString();
+      const payload = { app: "SystemPulse", exportedAt, metrics, processes, cpuHistory: history };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const filename = "systempulse-" + exportedAt.replace(/[:.]/g, "-") + ".json";
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportFeedback("Export requested: " + filename);
+    } catch {
+      setExportFeedback("Export failed. Check available disk space and try again.");
+    }
+  }
+
   async function toggleNotifications(enabled: boolean) {
     if (enabled && typeof window.Notification !== "undefined" && window.Notification.permission === "default") {
       try { await window.Notification.requestPermission(); } catch { /* Permission can be denied by the platform. */ }
@@ -55,10 +81,11 @@ export default function App() {
   }
 
   return <main className="app-shell">
-    <header className="topbar"><a className="brand" href="./" aria-label="SystemPulse home"><span className="brand-mark" aria-hidden="true"><span /></span><span className="brand-name">System<span>Pulse</span></span></a><div className="topbar-status"><span className={"live-dot " + (loading ? "live-dot--loading" : "")} /><span>{loading && !metrics ? "Connecting" : "Live monitoring"}</span><span className="status-divider" /><button className="refresh-button" type="button" onClick={() => void refresh()} disabled={loading}><span aria-hidden="true">↻</span> Refresh</button></div></header>
+    <header className="topbar"><a className="brand" href="./" aria-label="SystemPulse home"><span className="brand-mark" aria-hidden="true"><span /></span><span className="brand-name">System<span>Pulse</span></span></a><div className="topbar-status"><span className={"live-dot " + (loading ? "live-dot--loading" : "")} /><span>{loading && !metrics ? "Connecting" : "Live monitoring"}</span><span className="status-divider" /><button className="refresh-button" type="button" onClick={() => void refresh()} disabled={loading} aria-label="Refresh system metrics"><span aria-hidden="true">↻</span> Refresh</button><button className="refresh-button export-button" type="button" onClick={exportSnapshot} aria-label="Export current system metrics, processes, and CPU history as JSON"><span aria-hidden="true">↓</span> Export JSON</button></div></header>
     <section className="page-intro"><div><p className="eyebrow">SYSTEM OVERVIEW</p><h1>Your system, at a glance.</h1><p className="intro-copy">Real-time performance and process activity from this device.</p></div><div className="update-note"><span className="live-dot" /> Auto-refresh every {preferences.refreshIntervalSeconds} seconds</div></section>
-    {error && <div className="alert" role="status"><span className="alert-icon" aria-hidden="true">!</span><div><strong>Some system data could not be refreshed</strong><p>{error}{metrics ? " Showing the most recent successful metric readings where available." : ""}</p></div><button type="button" className="alert-retry" onClick={() => void refresh()} disabled={loading}>Retry</button></div>}
-    {loading && !metrics && <div className="loading-banner" role="status"><span className="spinner" /> Collecting your system metrics…</div>}
+    {exportFeedback && <div className="feedback-banner" role="status" aria-live="polite"><span>{exportFeedback}</span><button type="button" className="feedback-dismiss" onClick={() => setExportFeedback(null)} aria-label="Dismiss export status">Dismiss</button></div>}
+    {error && <div className="alert" role="alert" aria-live="assertive"><span className="alert-icon" aria-hidden="true">!</span><div><strong>Some system data could not be refreshed</strong><p>{error}{metrics ? " Showing the most recent successful metric readings where available." : ""}</p></div><button type="button" className="alert-retry" onClick={() => void refresh()} disabled={loading}>Retry</button></div>}
+    {loading && !metrics && <div className="loading-banner" role="status" aria-live="polite"><span className="spinner" /> Collecting your system metrics…</div>}
     {aboveThreshold && <div className="cpu-warning" role="status"><span aria-hidden="true">!</span><div><strong>High CPU usage</strong><p>CPU is at {cpuPercent.toFixed(1)}%, above your {preferences.cpuWarningThreshold}% warning threshold.</p></div></div>}
     <section className="metrics-grid" aria-label="System metrics"><MetricCard title="CPU usage" percent={cpuPercent} available={cpuAvailable} detail="Current processor utilization" icon={<span className="metric-glyph">⌘</span>} /><MetricCard title="Memory usage" percent={metrics?.memory.usagePercent ?? 0} available={Boolean(metrics?.memory.available)} detail={metrics ? formatBytes(metrics.memory.usedBytes) + " used of " + formatBytes(metrics.memory.totalBytes) : "Waiting for memory readings"} icon={<span className="metric-glyph">▤</span>} /><MetricCard title="Disk usage" percent={metrics?.disk.usagePercent ?? 0} available={Boolean(metrics?.disk.available)} detail={metrics ? formatBytes(metrics.disk.usedBytes) + " used of " + formatBytes(metrics.disk.totalBytes) + " · " + metrics.disk.mount : "Waiting for disk readings"} icon={<span className="metric-glyph">▣</span>} /></section>
     <CpuHistoryChart readings={history} threshold={preferences.cpuWarningThreshold} />
