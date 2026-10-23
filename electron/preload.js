@@ -4,6 +4,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 const IPC_CHANNELS = Object.freeze({
   getSnapshot: "system:get-snapshot",
+  getMetrics: "system:get-metrics",
+  getProcesses: "system:get-processes",
   snapshotUpdate: "system:update",
 });
 
@@ -11,9 +13,20 @@ const IPC_CHANNELS = Object.freeze({
  * @typedef {Object} SystemProcess
  * @property {number} pid
  * @property {string} name
- * @property {string} state
  * @property {number} cpuPercent
  * @property {number} memoryPercent
+ */
+
+/**
+ * @typedef {Object} SystemMetrics
+ * @property {string} sampledAt
+ * @property {{loadPercent: number}} cpu
+ * @property {{usedBytes: number, totalBytes: number, usagePercent: number, available: boolean}} memory
+ * @property {{mount: string, filesystem: string, usedBytes: number, totalBytes: number, usagePercent: number, available: boolean}} disk
+ */
+
+/**
+ * @typedef {{ok: true, data: T} | {ok: false, error: {code: string, message: string}}} ServiceResponse<T>
  */
 
 /**
@@ -64,6 +77,24 @@ const systemPulseApi = Object.freeze({
    */
   getSnapshot() {
     return ipcRenderer.invoke(IPC_CHANNELS.getSnapshot);
+  },
+
+  /**
+   * Request CPU, memory, and primary-disk metrics.
+   * Resolves to a serializable success/error envelope.
+   * @returns {Promise<ServiceResponse<SystemMetrics>>}
+   */
+  getMetrics() {
+    return ipcRenderer.invoke(IPC_CHANNELS.getMetrics);
+  },
+
+  /**
+   * Request the top running processes, sorted by CPU usage.
+   * Resolves to a serializable success/error envelope.
+   * @returns {Promise<ServiceResponse<SystemProcess[]>>}
+   */
+  getProcesses() {
+    return ipcRenderer.invoke(IPC_CHANNELS.getProcesses);
   },
 
   /**
