@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "allowJs": false,
+    "checkJs": false,
+    "types": ["node"]
+  },
+  "include": [
+    "types/systemPulse.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "renderer/**/*.ts",
+    "renderer/**/*.tsx",
+    "*.ts",
+    "*.tsx"
+  ]
+}
