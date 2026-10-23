@@ -1,6 +1,6 @@
 "use strict";
 
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, screen } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -99,10 +99,21 @@ function createWindow() {
     return mainWindow;
   }
   readWindowState();
+  const displays = screen.getAllDisplays();
+  const visibleOnDisplay = displays.some((display) => {
+    const area = display.workArea;
+    const x = Number.isFinite(lastWindowBounds.x) ? lastWindowBounds.x : area.x;
+    const y = Number.isFinite(lastWindowBounds.y) ? lastWindowBounds.y : area.y;
+    return x < area.x + area.width && x + lastWindowBounds.width > area.x && y < area.y + area.height && y + lastWindowBounds.height > area.y;
+  });
+  if (!visibleOnDisplay && displays.length) {
+    const area = screen.getPrimaryDisplay().workArea;
+    lastWindowBounds = { x: area.x + Math.max(0, Math.round((area.width - 1100) / 2)), y: area.y + Math.max(0, Math.round((area.height - 700) / 2)), width: Math.min(1100, area.width), height: Math.min(700, area.height) };
+  }
   mainWindow = new BrowserWindow({
     ...lastWindowBounds,
-    minWidth: 900,
-    minHeight: 600,
+    minWidth: 360,
+    minHeight: 480,
     title: "SystemPulse — Smart Desktop System Monitor",
     show: false,
     webPreferences: {
