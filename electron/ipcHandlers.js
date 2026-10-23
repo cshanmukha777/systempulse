@@ -56,7 +56,7 @@ function registerIpcHandlers(ipcMain, isTrustedIpcSender) {
 
   register("system:get-metrics", getSystemSnapshot, (snapshot) => ({
     sampledAt: snapshot.capturedAt,
-    cpu: { loadPercent: snapshot.cpu.loadPercent },
+    cpu: { loadPercent: snapshot.cpu.loadPercent, available: Number.isFinite(snapshot.cpu.loadPercent) },
     memory: {
       usedBytes: snapshot.memory.usedBytes,
       totalBytes: snapshot.memory.totalBytes,
