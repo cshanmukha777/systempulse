@@ -2,7 +2,7 @@
 
 SystemPulse is an Electron desktop app that displays a live overview of CPU, memory, disk, and running-process activity. It is built as a Computer Science/Application Development course project to demonstrate desktop APIs, the Electron main/renderer process model, secure preload APIs, IPC, system metrics, and practical reliability testing.
 
-> **Project status:** Development app with automated type, lint, unit-test, renderer-build, and headless startup checks. A signed installer/package is not currently configured. See [limitations](#known-limitations).
+> **Project status:** Development app with automated type, lint, unit-test, renderer-build, and headless startup checks. A macOS DMG packaging workflow is configured; check the latest [macOS package run](https://github.com/cshanmukha777/systempulse/actions/workflows/macos-package.yml) before treating an artifact as available. Packages are unsigned and not notarized. See [limitations](#known-limitations).
 
 ## Features
 
@@ -141,7 +141,7 @@ The test suite mocks systeminformation methods so unit tests do not depend on cu
 - Process PID filtering, name fallback, percentage normalization, sorting, and result limits.
 - IPC channel registration, rejection of untrusted senders, and sanitized service-error responses.
 
-GitHub Actions runs dependency installation, TypeScript checks, JavaScript linting, unit tests, the renderer build, and a headless Electron/Vite startup smoke test. The startup smoke test checks that the app stays running briefly; it is not an end-to-end test of tray, notifications, export, or real hardware behavior.
+The lightweight GitHub Actions workflow `.github/workflows/ci.yml` runs dependency installation, TypeScript checks, JavaScript linting, unit tests, the renderer build, and a headless Electron/Vite startup smoke test. The startup smoke test checks that the app stays running briefly; it is not an end-to-end test of tray, notifications, export, or real hardware behavior.
 
 For the broader manual checks, see [docs/TEST_PLAN.md](docs/TEST_PLAN.md).
 
