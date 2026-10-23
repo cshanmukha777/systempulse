@@ -16,7 +16,6 @@
   },
   "include": [
     "electron/systemMetrics.ts",
-    "electron/processService.js",
-    "electron/systemService.js"
+    "electron/processMetrics.ts"
   ]
 }
