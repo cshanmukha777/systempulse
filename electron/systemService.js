@@ -74,7 +74,16 @@ async function getSystemSnapshot() {
     safely(() => getRunningProcesses(), []),
   ]);
   const totalBytes = nonNegative(memory && memory.total);
-  const rawUsedMemory = memory && typeof memory.used === "number" && Number.isFinite(memory.used) && memory.used >= 0 ? memory.used : null;
+  // systeminformation.mem().used includes buffers/cache. Prefer "active" for
+  // the dashboard's used-memory figure so reclaimable cache is not presented
+  // as actively used memory. Fall back to "used" on platforms where active is
+  // unavailable.
+  const rawUsedMemory =
+    memory && typeof memory.active === "number" && Number.isFinite(memory.active) && memory.active >= 0
+      ? memory.active
+      : memory && typeof memory.used === "number" && Number.isFinite(memory.used) && memory.used >= 0
+        ? memory.used
+        : null;
   const memoryAvailable = totalBytes > 0 && rawUsedMemory !== null;
   const usedBytes = memoryAvailable ? Math.min(totalBytes, rawUsedMemory) : 0;
   const cpuAvailable = Boolean(load && typeof load.currentLoad === "number" && Number.isFinite(load.currentLoad) && load.currentLoad >= 0 && load.currentLoad <= 100);
