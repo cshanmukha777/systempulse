@@ -1,10 +1,11 @@
-"use strict";
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { formatPercent, formatBytes, clampPercent } from "../src/utils/formatters.mjs";
+import { shouldNotifyCpuThreshold } from "../src/utils/notificationThreshold.mjs";
 
-const test = require("node:test");
-const assert = require("node:assert/strict");
+const require = createRequire(import.meta.url);
 const si = require("systeminformation");
-const { formatPercent, formatBytes, clampPercent } = require("../src/utils/formatters");
-const { shouldNotifyCpuThreshold } = require("../src/utils/notificationThreshold");
 const { toDiskMetric, selectPrimaryDisk, getSystemSnapshot } = require("../electron/systemService");
 const { getRunningProcesses, DEFAULT_PROCESS_LIMIT } = require("../electron/processService");
 

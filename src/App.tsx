@@ -3,7 +3,7 @@ import MetricCard, { formatBytes } from "./components/MetricCard";
 import ProcessTable from "./components/ProcessTable";
 import CpuHistoryChart from "./components/CpuHistoryChart";
 import { useSystemPulse } from "./hooks/useSystemPulse";
-import { shouldNotifyCpuThreshold } from "./utils/notificationThreshold";
+import { shouldNotifyCpuThreshold } from "./utils/notificationThreshold.mjs";
 
 interface Preferences { cpuWarningThreshold: number; refreshIntervalSeconds: number; notificationsEnabled: boolean; }
 const DEFAULT_PREFERENCES: Preferences = { cpuWarningThreshold: 80, refreshIntervalSeconds: 3, notificationsEnabled: false };
